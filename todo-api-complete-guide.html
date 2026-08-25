@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Todo API — Complete Line-by-Line Guide (FastAPI + SQLAlchemy + Render)</title>
+<style>
+  :root{
+    --teal:#0d9488; --teal-dark:#0f766e; --teal-soft:#ccfbf1;
+    --ink:#1e293b; --ink-soft:#475569; --paper:#f8fafc; --card:#ffffff;
+    --line:#e2e8f0; --code-bg:#0f172a; --code-fg:#e2e8f0;
+    --amber:#f59e0b; --amber-soft:#fef3c7; --red:#dc2626; --red-soft:#fee2e2;
+    --blue:#2563eb; --blue-soft:#dbeafe; --green:#16a34a; --green-soft:#dcfce7;
+    --purple:#7c3aed; --purple-soft:#ede9fe;
+    --mono:"Cascadia Code","Consolas","SF Mono",Menlo,monospace;
+    --sans:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--sans);background:var(--paper);color:var(--ink);line-height:1.6}
+  header{background:linear-gradient(120deg,#134e4a,#0f766e 55%,#115e59);color:#fff;padding:28px 32px 0}
+  header h1{font-size:26px;font-weight:700;letter-spacing:-.3px}
+  header .sub{color:#99f6e4;font-size:14px;margin:6px 0 18px}
+  header .stack{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+  header .stack span{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:3px 12px;font-size:12px;font-family:var(--mono)}
+  nav{display:flex;flex-wrap:wrap;gap:2px}
+  nav button{border:none;background:rgba(255,255,255,.08);color:#ccfbf1;padding:10px 16px;font-size:13.5px;font-weight:600;cursor:pointer;border-radius:8px 8px 0 0;font-family:var(--sans)}
+  nav button:hover{background:rgba(255,255,255,.18)}
+  nav button.active{background:var(--paper);color:var(--teal-dark)}
+  nav button:focus-visible{outline:2px solid #99f6e4;outline-offset:-2px}
+  main{max-width:1180px;margin:0 auto;padding:28px 24px 60px}
+  .tab{display:none}
+  .tab.active{display:block;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  h2{font-size:22px;color:var(--teal-dark);margin:26px 0 10px;border-bottom:2px solid var(--teal-soft);padding-bottom:6px}
+  h2:first-child{margin-top:0}
+  h3{font-size:17px;margin:20px 0 8px;color:var(--ink)}
+  p{margin:8px 0;color:var(--ink-soft);max-width:78ch}
+  strong{color:var(--ink)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:14px 0;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin:14px 0}
+  .w{border-left:5px solid var(--teal);background:var(--card);border-radius:10px;padding:14px 16px;border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .w .tag{display:inline-block;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--teal-dark);background:var(--teal-soft);border-radius:4px;padding:2px 8px;margin-bottom:6px}
+  table{width:100%;border-collapse:collapse;margin:12px 0;background:var(--card);border-radius:10px;overflow:hidden;font-size:13.5px}
+  th{background:var(--teal-dark);color:#fff;text-align:left;padding:9px 12px;font-size:12.5px;letter-spacing:.03em}
+  td{padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink-soft)}
+  tr:last-child td{border-bottom:none}
+  tr:nth-child(even) td{background:#f8fafc}
+  td code, p code, li code{font-family:var(--mono);font-size:12.5px;background:#eef2f7;color:#0f766e;border-radius:4px;padding:1px 5px}
+  td.codecell{font-family:var(--mono);font-size:12.5px;color:#0f172a;white-space:pre}
+  td.lineno{color:#94a3b8;font-family:var(--mono);width:34px;text-align:right}
+  pre{background:var(--code-bg);color:var(--code-fg);font-family:var(--mono);font-size:13px;padding:16px 18px;border-radius:10px;overflow-x:auto;margin:12px 0;line-height:1.55}
+  pre .c{color:#64748b}
+  pre .k{color:#7dd3fc}
+  pre .s{color:#fbbf24}
+  pre .f{color:#6ee7b7}
+  .note{border-left:5px solid var(--amber);background:var(--amber-soft);border-radius:8px;padding:12px 16px;margin:12px 0;font-size:14px;color:#78350f}
+  .tip{border-left:5px solid var(--green);background:var(--green-soft);border-radius:8px;padding:12px 16px;margin:12px 0;font-size:14px;color:#14532a}
+  .warn{border-left:5px solid var(--red);background:var(--red-soft);border-radius:8px;padding:12px 16px;margin:12px 0;font-size:14px;color:#7f1d1d}
+  .analogy{border:1px dashed var(--purple);background:var(--purple-soft);border-radius:10px;padding:14px 16px;margin:12px 0;font-size:14px;color:#4c1d95}
+  ul,ol{margin:8px 0 8px 24px;color:var(--ink-soft)}
+  li{margin:5px 0}
+  .diagram{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:14px 0;overflow-x:auto;text-align:center}
+  .step{display:flex;gap:14px;margin:16px 0;align-items:flex-start}
+  .step .num{flex:0 0 34px;height:34px;border-radius:50%;background:var(--teal);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:15px}
+  .step .body{flex:1}
+  .step .body h4{font-size:15.5px;margin-bottom:4px}
+  .badge{display:inline-block;font-family:var(--mono);font-size:11px;font-weight:700;border-radius:4px;padding:2px 8px;margin-right:6px}
+  .b-get{background:var(--blue-soft);color:var(--blue)}
+  .b-post{background:var(--green-soft);color:var(--green)}
+  .b-put{background:var(--amber-soft);color:#b45309}
+  .b-del{background:var(--red-soft);color:var(--red)}
+  .filetab{border:1px solid var(--line);border-radius:10px;margin:18px 0;overflow:hidden;background:var(--card)}
+  .filetab .fname{background:#0f172a;color:#7dd3fc;font-family:var(--mono);font-size:13px;padding:8px 14px;display:flex;justify-content:space-between;align-items:center}
+  .filetab .fname .role{color:#94a3b8;font-size:11.5px;font-family:var(--sans)}
+  footer{text-align:center;color:#94a3b8;font-size:12px;padding:20px}
+  @media (max-width:640px){header{padding:20px 16px 0}main{padding:20px 12px 40px}nav button{padding:8px 10px;font-size:12px}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Todo API — Complete Guide</h1>
+  <div class="sub">Line-by-line walkthrough · FastAPI + SQLAlchemy + SQLite · Deployed live on Render at <span style="font-family:var(--mono)">todo-application-tazt.onrender.com</span></div>
+  <div class="stack">
+    <span>Python 3</span><span>FastAPI 0.141</span><span>SQLAlchemy 2.0</span><span>Pydantic 2</span><span>Uvicorn</span><span>SQLite</span><span>GitHub</span><span>Render</span>
+  </div>
+  <nav id="tabs">
+    <button class="active" data-tab="t-overview">1 · Overview (5W+H)</button>
+    <button data-tab="t-arch">2 · Architecture</button>
+    <button data-tab="t-files">3 · Files &amp; Structure</button>
+    <button data-tab="t-lines">4 · Line-by-Line</button>
+    <button data-tab="t-libs">5 · Libraries</button>
+    <button data-tab="t-flow">6 · End-to-End Flow</button>
+    <button data-tab="t-seq">7 · Sequence Diagrams</button>
+    <button data-tab="t-setup">8 · Project Setup Guide</button>
+    <button data-tab="t-deploy">9 · Deploy on Render</button>
+  </nav>
+</header>
+
+<main>
+
+<!-- ============ TAB 1: OVERVIEW ============ -->
+<section id="t-overview" class="tab active">
+  <h2>What you built, explained with 5Ws and a H</h2>
+  <p>You built a <strong>REST API</strong> — a web service that lets any client (a browser, a mobile app, Postman, or another program) create, read, update, and delete todo items over HTTP. It is now live on the public internet via Render.</p>
+
+  <div class="grid">
+    <div class="w"><span class="tag">WHAT</span>
+      <p><strong>A Todo CRUD API.</strong> CRUD = Create, Read, Update, Delete — the four basic operations on data. Your API exposes 5 endpoints under <code>/todos</code> that store todo items (title, description, priority, completed flag, end time) in a SQLite database file called <code>todos.db</code>.</p>
+    </div>
+    <div class="w"><span class="tag">WHY</span>
+      <p><strong>To separate data from presentation.</strong> An API means any front end — a React website, an iPhone app, an Excel macro — can talk to the same data using plain HTTP + JSON. This is exactly how Shopify, Gmail, and banking apps work behind the scenes: the screen you see is just a client calling APIs like this one.</p>
+    </div>
+    <div class="w"><span class="tag">WHO</span>
+      <p><strong>The layers each have a job.</strong> <em>FastAPI</em> is the receptionist (receives HTTP requests, routes them). <em>Pydantic schemas</em> are the security guard (validate incoming JSON). <em>SQLAlchemy</em> is the translator (turns Python objects into SQL). <em>SQLite</em> is the filing cabinet (stores the rows). <em>Uvicorn</em> is the building itself (the server that keeps the doors open).</p>
+    </div>
+    <div class="w"><span class="tag">WHEN</span>
+      <p><strong>At every HTTP request.</strong> When a client calls <code>POST /todos</code>, the whole pipeline fires in milliseconds: validate → open DB session → insert row → commit → return JSON. Table creation happens once, at app startup (<code>Base.metadata.create_all</code> in <code>main.py</code>).</p>
+    </div>
+    <div class="w"><span class="tag">WHERE</span>
+      <p><strong>Locally and on Render.</strong> On your laptop it runs at <code>http://127.0.0.1:8000</code>. In production, Render pulls your GitHub repo <code>EdwardSuresh/todo-application</code>, builds it, and serves it publicly at <code>https://todo-application-tazt.onrender.com</code>. The database file lives on the server's disk next to the code.</p>
+    </div>
+    <div class="w"><span class="tag">HOW</span>
+      <p><strong>Layered architecture + dependency injection.</strong> Each request flows: Client → Uvicorn → FastAPI router → (Pydantic validates) → route function gets a DB session via <code>Depends(get_db)</code> → SQLAlchemy runs SQL → SQLite → response model serializes the result back to JSON.</p>
+    </div>
+  </div>
+
+  <div class="analogy"><strong>🍽️ Real-world analogy — a restaurant:</strong> The customer (client) gives an order (HTTP request) to the waiter (FastAPI router). The waiter checks the order is valid — no ordering dishes not on the menu (Pydantic validation). The order goes to the kitchen (SQLAlchemy) which knows how to fetch ingredients from the pantry (SQLite). The finished dish comes back on a standard plate (JSON response shaped by <code>TodoResponse</code>). Uvicorn is the restaurant building: without it open, nobody gets served.</div>
+
+  <h2>Your 5 API endpoints</h2>
+  <table>
+    <tr><th>Method</th><th>Path</th><th>Function</th><th>What it does</th><th>Real-world example</th></tr>
+    <tr><td><span class="badge b-get">GET</span></td><td><code>/todos</code></td><td><code>get_todos</code></td><td>List every todo in the database</td><td>Opening your task list each morning</td></tr>
+    <tr><td><span class="badge b-get">GET</span></td><td><code>/todos/{id}</code></td><td><code>get_todo</code></td><td>Fetch one todo by its ID; 404 if missing</td><td>Tapping one task to see its details</td></tr>
+    <tr><td><span class="badge b-post">POST</span></td><td><code>/todos</code></td><td><code>create_todo</code></td><td>Validate JSON body, insert a new row, return it with its new ID</td><td>Adding "File Q3 taxes" to your list</td></tr>
+    <tr><td><span class="badge b-put">PUT</span></td><td><code>/todos/{id}</code></td><td><code>update_todo</code></td><td>Replace all fields of an existing todo; 404 if missing</td><td>Marking a task completed / changing its priority</td></tr>
+    <tr><td><span class="badge b-del">DEL</span></td><td><code>/todos/{id}</code></td><td><code>delete_todo</code></td><td>Remove the row; returns the deleted item; 404 if missing</td><td>Deleting a finished task</td></tr>
+  </table>
+
+  <div class="tip"><strong>Try it right now:</strong> because it's live on Render, open <code>https://todo-application-tazt.onrender.com/docs</code> — FastAPI auto-generates an interactive Swagger UI where you can click "Try it out" on every endpoint. No Postman needed.</div>
+
+  <div class="note"><strong>Free-tier behavior you noticed:</strong> Render free instances spin down after ~15 minutes of inactivity, so the first request after a quiet period takes 50+ seconds while the container cold-starts. Also, the free filesystem is <em>ephemeral</em> — every redeploy or restart wipes <code>todos.db</code> back to empty (more on this in Tab 9).</div>
+</section>
+
+<!-- ============ TAB 2: ARCHITECTURE ============ -->
+<section id="t-arch" class="tab">
+  <h2>Architecture diagram</h2>
+  <p>This is a classic <strong>3-layer (n-tier) architecture</strong>: Presentation (API layer) → Business/Data-access layer (ORM) → Storage layer (database). The same pattern scales from this todo app up to enterprise banking platforms — only the boxes get bigger.</p>
+
+  <div class="diagram">
+  <svg viewBox="0 0 1080 640" xmlns="http://www.w3.org/2000/svg" style="max-width:1080px;width:100%;font-family:Segoe UI,Arial,sans-serif">
+    <defs>
+      <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#475569"/></marker>
+      <marker id="arrT" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#0d9488"/></marker>
+    </defs>
+
+    <!-- Clients -->
+    <rect x="20" y="40" width="180" height="200" rx="12" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+    <text x="110" y="66" text-anchor="middle" font-size="14" font-weight="700" fill="#1e40af">CLIENTS</text>
+    <rect x="40" y="82" width="140" height="40" rx="8" fill="#fff" stroke="#93c5fd"/>
+    <text x="110" y="107" text-anchor="middle" font-size="12" fill="#1e293b">🌐 Browser / Swagger UI</text>
+    <rect x="40" y="132" width="140" height="40" rx="8" fill="#fff" stroke="#93c5fd"/>
+    <text x="110" y="157" text-anchor="middle" font-size="12" fill="#1e293b">📱 Mobile app / Postman</text>
+    <rect x="40" y="182" width="140" height="40" rx="8" fill="#fff" stroke="#93c5fd"/>
+    <text x="110" y="207" text-anchor="middle" font-size="12" fill="#1e293b">⚙️ Other services (curl)</text>
+
+    <!-- HTTPS arrow -->
+    <line x1="200" y1="140" x2="268" y2="140" stroke="#475569" stroke-width="2" marker-end="url(#arr)"/>
+    <text x="234" y="128" text-anchor="middle" font-size="11" fill="#475569">HTTPS</text>
+    <text x="234" y="158" text-anchor="middle" font-size="10" fill="#94a3b8">JSON</text>
+
+    <!-- Render cloud -->
+    <rect x="270" y="14" width="640" height="560" rx="16" fill="#f0fdfa" stroke="#0d9488" stroke-width="2" stroke-dasharray="8 5"/>
+    <text x="590" y="40" text-anchor="middle" font-size="14" font-weight="700" fill="#0f766e">RENDER WEB SERVICE — todo-application-tazt.onrender.com</text>
+
+    <!-- Uvicorn -->
+    <rect x="300" y="70" width="580" height="60" rx="10" fill="#ccfbf1" stroke="#0d9488" stroke-width="1.5"/>
+    <text x="590" y="95" text-anchor="middle" font-size="13" font-weight="700" fill="#0f766e">UVICORN — ASGI web server (listens on $PORT)</text>
+    <text x="590" y="115" text-anchor="middle" font-size="11" fill="#475569">Accepts TCP/HTTP connections · hands each request to the FastAPI app</text>
+
+    <line x1="590" y1="130" x2="590" y2="158" stroke="#0d9488" stroke-width="2" marker-end="url(#arrT)"/>
+
+    <!-- FastAPI app -->
+    <rect x="300" y="160" width="580" height="230" rx="10" fill="#ffffff" stroke="#0d9488" stroke-width="1.5"/>
+    <text x="590" y="184" text-anchor="middle" font-size="13" font-weight="700" fill="#0f766e">FASTAPI APPLICATION (main.py)</text>
+
+    <rect x="320" y="198" width="255" height="76" rx="8" fill="#f0fdfa" stroke="#5eead4"/>
+    <text x="447" y="220" text-anchor="middle" font-size="12" font-weight="700" fill="#0f766e">Router (routes/todos.py)</text>
+    <text x="447" y="240" text-anchor="middle" font-size="10.5" fill="#475569">GET /todos · GET /todos/{id}</text>
+    <text x="447" y="256" text-anchor="middle" font-size="10.5" fill="#475569">POST · PUT · DELETE</text>
+
+    <rect x="605" y="198" width="255" height="76" rx="8" fill="#fef9c3" stroke="#facc15"/>
+    <text x="732" y="220" text-anchor="middle" font-size="12" font-weight="700" fill="#854d0e">Schemas (schemas.py)</text>
+    <text x="732" y="240" text-anchor="middle" font-size="10.5" fill="#713f12">TodoCreateOrUpdate → validates input</text>
+    <text x="732" y="256" text-anchor="middle" font-size="10.5" fill="#713f12">TodoResponse → shapes output JSON</text>
+
+    <rect x="320" y="292" width="255" height="76" rx="8" fill="#ede9fe" stroke="#a78bfa"/>
+    <text x="447" y="314" text-anchor="middle" font-size="12" font-weight="700" fill="#5b21b6">ORM Model (models.py)</text>
+    <text x="447" y="334" text-anchor="middle" font-size="10.5" fill="#4c1d95">class TodoModel ↔ table "todos"</text>
+    <text x="447" y="350" text-anchor="middle" font-size="10.5" fill="#4c1d95">id · title · description · priority · completed · end_time</text>
+
+    <rect x="605" y="292" width="255" height="76" rx="8" fill="#dbeafe" stroke="#60a5fa"/>
+    <text x="732" y="314" text-anchor="middle" font-size="12" font-weight="700" fill="#1e40af">DB plumbing (database.py)</text>
+    <text x="732" y="334" text-anchor="middle" font-size="10.5" fill="#1e3a8a">engine · SessionLocal · Base</text>
+    <text x="732" y="350" text-anchor="middle" font-size="10.5" fill="#1e3a8a">get_db() → session per request</text>
+
+    <line x1="590" y1="390" x2="590" y2="418" stroke="#0d9488" stroke-width="2" marker-end="url(#arrT)"/>
+    <text x="700" y="410" text-anchor="middle" font-size="11" fill="#475569">SQLAlchemy 2.0 translates Python → SQL</text>
+
+    <!-- SQLite -->
+    <rect x="410" y="420" width="360" height="70" rx="10" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5"/>
+    <text x="590" y="446" text-anchor="middle" font-size="13" font-weight="700" fill="#9a3412">🗄️ SQLITE — todos.db (single file on disk)</text>
+    <text x="590" y="468" text-anchor="middle" font-size="11" fill="#7c2d12">Table: todos — created at startup by Base.metadata.create_all()</text>
+
+    <text x="590" y="530" text-anchor="middle" font-size="11.5" fill="#0f766e" font-weight="700">⚠ Free tier: disk is ephemeral — todos.db resets on each deploy/restart</text>
+    <text x="590" y="552" text-anchor="middle" font-size="11" fill="#64748b">Start command: uvicorn app.main:app --host 0.0.0.0 --port $PORT</text>
+
+    <!-- GitHub deploy path -->
+    <rect x="940" y="70" width="130" height="90" rx="12" fill="#f1f5f9" stroke="#334155" stroke-width="1.5"/>
+    <text x="1005" y="100" text-anchor="middle" font-size="13" font-weight="700" fill="#0f172a">GITHUB</text>
+    <text x="1005" y="120" text-anchor="middle" font-size="10.5" fill="#475569">EdwardSuresh/</text>
+    <text x="1005" y="136" text-anchor="middle" font-size="10.5" fill="#475569">todo-application</text>
+    <line x1="940" y1="115" x2="895" y2="115" stroke="#475569" stroke-width="2" marker-end="url(#arr)"/>
+    <text x="1005" y="185" text-anchor="middle" font-size="10.5" fill="#64748b">git push → auto</text>
+    <text x="1005" y="201" text-anchor="middle" font-size="10.5" fill="#64748b">deploy (CI/CD)</text>
+  </svg>
+  </div>
+
+  <h2>Why the layers matter (separation of concerns)</h2>
+  <table>
+    <tr><th>Layer</th><th>File</th><th>Single responsibility</th><th>If you swap it out…</th></tr>
+    <tr><td>Web server</td><td>uvicorn (installed)</td><td>Speak HTTP; keep the port open</td><td>Could swap to Hypercorn — no code change</td></tr>
+    <tr><td>API / routing</td><td><code>main.py</code>, <code>routes/todos.py</code></td><td>Map URLs + methods to Python functions</td><td>Add <code>/users</code> router without touching todos</td></tr>
+    <tr><td>Validation</td><td><code>schemas.py</code></td><td>Guarantee request/response shape</td><td>Add a field once; validation is automatic</td></tr>
+    <tr><td>Data access (ORM)</td><td><code>models.py</code>, <code>database.py</code></td><td>Convert Python objects ↔ SQL rows</td><td>Change one URL string → PostgreSQL, routes untouched</td></tr>
+    <tr><td>Storage</td><td><code>todos.db</code></td><td>Persist bytes on disk</td><td>SQLite → Postgres for real multi-user production</td></tr>
+  </table>
+
+  <div class="analogy"><strong>🏢 Enterprise-architecture view:</strong> this maps directly to a reference architecture you'd draw for any system: Channel layer (clients) → Integration/API layer (FastAPI) → Domain/services layer (route functions) → Data layer (ORM + DB). The discipline of "each layer only talks to its neighbor" is what makes the design testable and replaceable.</div>
+</section>
+
+<!-- ============ TAB 3: FILES ============ -->
+<section id="t-files" class="tab">
+  <h2>Project structure</h2>
+  <p>Because <code>main.py</code> uses <em>relative imports</em> (<code>from .database import …</code>) and <code>todos.py</code> uses <code>from ..database import …</code> (two dots = go up one folder), the files must live inside a Python <strong>package</strong> — a folder with an <code>__init__.py</code> file. The working layout is:</p>
+<pre>todo-application/                <span class="c"># repo root (what GitHub sees)</span>
+├── app/                         <span class="c"># the Python package</span>
+│   ├── __init__.py              <span class="c"># empty file — marks "app" as a package</span>
+│   ├── main.py                  <span class="c"># app entry point — creates FastAPI()</span>
+│   ├── database.py              <span class="c"># engine, session factory, Base, get_db()</span>
+│   ├── models.py                <span class="c"># SQLAlchemy table definition</span>
+│   ├── schemas.py               <span class="c"># Pydantic request/response shapes</span>
+│   └── routes/
+│       ├── __init__.py          <span class="c"># marks "routes" as a sub-package</span>
+│       └── todos.py             <span class="c"># the 5 CRUD endpoints</span>
+├── requirements.txt             <span class="c"># pinned dependencies for pip</span>
+├── .gitignore                   <span class="c"># ".venv" — keep the virtualenv out of git</span>
+└── todos.db                     <span class="c"># SQLite file — created automatically at first run</span></pre>
+
+  <h2>File-by-file description</h2>
+  <table>
+    <tr><th>File</th><th>Role (one line)</th><th>Detailed description</th><th>Talks to</th></tr>
+    <tr><td><code>main.py</code></td><td>Entry point / composition root</td><td>Builds the <code>FastAPI()</code> app object, creates database tables at startup, and plugs in the todos router. This is the file Uvicorn is pointed at (<code>app.main:app</code>).</td><td>database.py, routes/todos.py</td></tr>
+    <tr><td><code>database.py</code></td><td>Database plumbing</td><td>Defines the connection URL, the <code>engine</code> (the actual connection to SQLite), <code>SessionLocal</code> (a factory that makes one session per request), <code>Base</code> (parent class for all models), and <code>get_db()</code> (the dependency that opens/closes a session safely).</td><td>SQLAlchemy, todos.db</td></tr>
+    <tr><td><code>models.py</code></td><td>Database table definition (ORM)</td><td>Declares <code>TodoModel</code>, a Python class mapped to the SQL table <code>todos</code>. Each <code>Column(...)</code> becomes a column in SQLite. This is the "shape of data at rest".</td><td>database.py (Base)</td></tr>
+    <tr><td><code>schemas.py</code></td><td>API contracts (validation)</td><td>Pydantic models: <code>TodoCreateOrUpdate</code> defines what JSON a client must send; <code>TodoResponse</code> defines exactly what JSON goes back out (including the DB-generated <code>id</code>). This is the "shape of data in flight".</td><td>Pydantic, routes/todos.py</td></tr>
+    <tr><td><code>routes/todos.py</code></td><td>The 5 CRUD endpoints</td><td>An <code>APIRouter</code> with prefix <code>/todos</code>. Each function queries or mutates the database through an injected session and returns objects that FastAPI serializes via <code>TodoResponse</code>.</td><td>database.py, models.py, schemas.py</td></tr>
+    <tr><td><code>requirements.txt</code></td><td>Dependency manifest</td><td>Exact pinned versions so your laptop and Render install identical libraries (<code>pip install -r requirements.txt</code>). Reproducibility = fewer "works on my machine" surprises.</td><td>pip / Render build</td></tr>
+    <tr><td><code>.gitignore</code></td><td>Git exclusion list</td><td>Contains <code>.venv</code> so your (huge, machine-specific) virtual environment folder never gets committed to GitHub.</td><td>git</td></tr>
+    <tr><td><code>todos.db</code></td><td>The database itself</td><td>A single binary file holding the <code>todos</code> table. SQLite needs no server process — the whole DB engine runs inside your app.</td><td>SQLAlchemy engine</td></tr>
+  </table>
+
+  <div class="tip"><strong>Rule of thumb to remember the split:</strong> <code>models.py</code> = how data <em>sits in the database</em>; <code>schemas.py</code> = how data <em>travels over the network</em>. Keeping them separate lets your DB evolve without breaking clients — a core API-versioning principle.</div>
+
+  <div class="note"><strong>Small cleanup worth doing:</strong> <code>todos.db</code> is generated at runtime, so it's best added to <code>.gitignore</code> too (like <code>.venv</code>). Committing a database file to git causes noisy diffs and can overwrite live data on deploy.</div>
+</section>
+
+<!-- ============ TAB 4: LINE BY LINE ============ -->
+<section id="t-lines" class="tab">
+  <h2>Line-by-line walkthrough</h2>
+  <p>Read the files in this order — it follows the dependency chain: <strong>database.py → models.py → schemas.py → routes/todos.py → main.py</strong>. Each earlier file provides something the next one imports.</p>
+
+  <!-- database.py -->
+  <div class="filetab">
+    <div class="fname">app/database.py <span class="role">DB plumbing — engine, sessions, Base, get_db()</span></div>
+    <table>
+      <tr><th style="width:34px">#</th><th style="width:46%">Code</th><th>What it does &amp; why</th></tr>
+      <tr><td class="lineno">1</td><td class="codecell">from sqlalchemy import create_engine</td><td>Imports the factory function that builds an <strong>Engine</strong> — SQLAlchemy's object that manages actual connections to the database.</td></tr>
+      <tr><td class="lineno">2</td><td class="codecell">from sqlalchemy.orm import declarative_base, sessionmaker</td><td><code>declarative_base</code> makes the parent class your models inherit from; <code>sessionmaker</code> builds a factory for <strong>Session</strong> objects (a session = one unit of conversation with the DB).</td></tr>
+      <tr><td class="lineno">4</td><td class="codecell">SQLALCHEMY_DATABASE_URL = "sqlite:///./todos.db"</td><td>The connection string. Format: <code>dialect:///path</code>. <code>sqlite:///./todos.db</code> = "SQLite database, file <code>todos.db</code> in the current working directory." Swap this one string to <code>postgresql://user:pass@host/db</code> and the whole app moves to Postgres.</td></tr>
+      <tr><td class="lineno">6–9</td><td class="codecell">engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+)</td><td>Creates the engine. <code>check_same_thread=False</code> is a <strong>SQLite-only</strong> flag: SQLite normally forbids using one connection from multiple threads, but FastAPI may handle each request on a different thread, so we relax that check. (Sessions still keep access safe per-request.)</td></tr>
+      <tr><td class="lineno">10</td><td class="codecell">SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)</td><td>A session <em>factory</em>. Calling <code>SessionLocal()</code> yields a fresh session bound to our engine. <code>autocommit=False</code>: nothing is saved until you explicitly call <code>db.commit()</code> — you control transactions. <code>autoflush=False</code>: SQL isn't sent mid-query behind your back.</td></tr>
+      <tr><td class="lineno">11</td><td class="codecell">Base = declarative_base()</td><td>The registry/parent class. Every class inheriting from <code>Base</code> (like <code>TodoModel</code>) is registered, so later <code>Base.metadata.create_all()</code> knows which tables to create.</td></tr>
+      <tr><td class="lineno">14–19</td><td class="codecell">def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()</td><td>The <strong>dependency</strong> used by every route via <code>Depends(get_db)</code>. It's a generator: it opens a session, <code>yield</code>s it to the route function (the route runs at the yield point), and the <code>finally</code> block <em>guarantees</em> the session closes afterwards — even if the route raised an exception. Real-world analogy: a library checkout desk — you borrow a book (session), and no matter what happens, it gets returned.</td></tr>
+    </table>
+  </div>
+
+  <!-- models.py -->
+  <div class="filetab">
+    <div class="fname">app/models.py <span class="role">ORM model — the "todos" table as a Python class</span></div>
+    <table>
+      <tr><th style="width:34px">#</th><th style="width:46%">Code</th><th>What it does &amp; why</th></tr>
+      <tr><td class="lineno">1</td><td class="codecell">from sqlalchemy import Boolean, Column, Integer, String</td><td>Column type building blocks — each maps a Python type to a SQL column type (<code>Integer</code>→INTEGER, <code>String</code>→VARCHAR/TEXT, <code>Boolean</code>→BOOLEAN).</td></tr>
+      <tr><td class="lineno">2</td><td class="codecell">from .database import Base</td><td>Relative import (<code>.</code> = same package). Inheriting from this <code>Base</code> is what registers the table.</td></tr>
+      <tr><td class="lineno">4</td><td class="codecell">class TodoModel(Base):</td><td>One class = one table. Instances of this class = rows.</td></tr>
+      <tr><td class="lineno">5</td><td class="codecell">    __tablename__ = "todos"</td><td>The actual table name in SQLite. Without this SQLAlchemy raises an error.</td></tr>
+      <tr><td class="lineno">7</td><td class="codecell">    id = Column(Integer, primary_key=True, index=True)</td><td><strong>Primary key</strong>: unique identity of each row. For an integer PK, SQLite auto-increments it — that's why <code>create_todo</code> never sets <code>id</code>; the DB assigns it. <code>index=True</code> builds an index for fast lookup.</td></tr>
+      <tr><td class="lineno">8</td><td class="codecell">    title = Column(String, index=True)</td><td>Text column; indexed so searches by title stay fast as the table grows.</td></tr>
+      <tr><td class="lineno">9</td><td class="codecell">    description = Column(String, index=True)</td><td>Text column for details. (Indexing long free-text is rarely useful — safe to drop <code>index=True</code> here.)</td></tr>
+      <tr><td class="lineno">10</td><td class="codecell">    priority = Column(Integer, default=1)</td><td>Numeric priority; if a row is inserted without one, the DB stores <code>1</code>.</td></tr>
+      <tr><td class="lineno">11</td><td class="codecell">    completed = Column(Boolean, default=False)</td><td>Done flag; new todos start as not-completed.</td></tr>
+      <tr><td class="lineno">12</td><td class="codecell">    end_time = Column(String, default=None)</td><td>Due date stored as a plain string (nullable). Improvement idea: use <code>DateTime</code> so the DB can sort/filter by date properly.</td></tr>
+    </table>
+  </div>
+
+  <!-- schemas.py -->
+  <div class="filetab">
+    <div class="fname">app/schemas.py <span class="role">Pydantic schemas — API input/output contracts</span></div>
+    <table>
+      <tr><th style="width:34px">#</th><th style="width:46%">Code</th><th>What it does &amp; why</th></tr>
+      <tr><td class="lineno">1</td><td class="codecell">from pydantic import BaseModel</td><td>Pydantic's base class gives automatic parsing + validation + JSON serialization to any class that inherits it.</td></tr>
+      <tr><td class="lineno">3–8</td><td class="codecell">class TodoCreateOrUpdate(BaseModel):
+    title: str
+    description: str
+    completed: bool = False
+    priority: int = 1
+    end_time: str = None</td><td>The <strong>request body contract</strong> for POST and PUT. Fields with no default (<code>title</code>, <code>description</code>) are <em>required</em> — if a client omits them or sends the wrong type (e.g. <code>"priority": "high"</code>), FastAPI automatically replies <strong>422 Unprocessable Entity</strong> with a precise error, before your code even runs. Fields with defaults are optional. Note there is no <code>id</code> here — clients never choose IDs; the database does.</td></tr>
+      <tr><td class="lineno">10–17</td><td class="codecell">class TodoResponse(BaseModel):
+    id: int
+    title: str
+    description: str
+    completed: bool
+    priority: int
+    end_time: str = None</td><td>The <strong>response contract</strong>: what every endpoint returns. It <em>does</em> include <code>id</code> because responses describe rows that already exist. Acting as <code>response_model</code>, it also filters output — if you later add a secret column, it won't leak unless you add it here.</td></tr>
+      <tr><td class="lineno">19–20</td><td class="codecell">    class Config:
+        from_attributes = True</td><td>Normally Pydantic reads dicts. This flag lets it read <em>object attributes</em> too — so FastAPI can convert a SQLAlchemy <code>TodoModel</code> row directly into a <code>TodoResponse</code> (reading <code>todo.id</code>, <code>todo.title</code>, …). Without it, returning ORM objects fails.</td></tr>
+    </table>
+  </div>
+
+  <!-- todos.py -->
+  <div class="filetab">
+    <div class="fname">app/routes/todos.py <span class="role">The 5 CRUD endpoints</span></div>
+    <table>
+      <tr><th style="width:34px">#</th><th style="width:46%">Code</th><th>What it does &amp; why</th></tr>
+      <tr><td class="lineno">1–2</td><td class="codecell">from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session</td><td><code>APIRouter</code> = a mini-app of grouped endpoints; <code>Depends</code> = dependency injection marker; <code>HTTPException</code> = the proper way to return HTTP errors; <code>Session</code> = type hint for the DB session.</td></tr>
+      <tr><td class="lineno">4–6</td><td class="codecell">from ..database import get_db
+from ..models import TodoModel
+from ..schemas import TodoCreateOrUpdate, TodoResponse</td><td><code>..</code> means "go up one package level" (from <code>routes/</code> up to <code>app/</code>) then import. Pulls in the session dependency, the table class, and the two contracts.</td></tr>
+      <tr><td class="lineno">8</td><td class="codecell">router = APIRouter(prefix="/todos", tags=["todos"])</td><td>Every route below is automatically mounted under <code>/todos</code>, and grouped under a "todos" heading in Swagger UI. Central place to change the URL base.</td></tr>
+      <tr><td class="lineno">10–13</td><td class="codecell">@router.get("", response_model=list[TodoResponse])
+def get_todos(db: Session = Depends(get_db)):
+    todos = db.query(TodoModel).all()
+    return todos</td><td><strong>READ (all).</strong> The decorator maps <code>GET /todos</code> to this function. <code>Depends(get_db)</code> tells FastAPI: before running this, call <code>get_db()</code> and hand me the session. <code>db.query(TodoModel).all()</code> runs <code>SELECT * FROM todos</code> and returns a list of <code>TodoModel</code> objects; <code>response_model=list[TodoResponse]</code> converts each into clean JSON.</td></tr>
+      <tr><td class="lineno">15–20</td><td class="codecell">@router.get("/{todo_id}", response_model=TodoResponse)
+def get_todo(todo_id: int, db: Session = Depends(get_db)):
+    todo = db.query(TodoModel).filter(TodoModel.id == todo_id).first()
+    if not todo:
+        raise HTTPException(status_code=404, detail="Todo not found")
+    return todo</td><td><strong>READ (one).</strong> <code>{todo_id}</code> in the path becomes the function argument — and because it's typed <code>int</code>, FastAPI converts and validates it ("abc" → automatic 422). <code>.filter(...).first()</code> = <code>SELECT … WHERE id = ? LIMIT 1</code>; returns <code>None</code> if absent, in which case we raise a proper <strong>404</strong> instead of crashing.</td></tr>
+      <tr><td class="lineno">22–28</td><td class="codecell">@router.post("", response_model=TodoResponse)
+def create_todo(todo: TodoCreateOrUpdate, db: Session = Depends(get_db)):
+    new_todo = TodoModel(**todo.dict())
+    db.add(new_todo)
+    db.commit()
+    db.refresh(new_todo)
+    return new_todo</td><td><strong>CREATE.</strong> Because <code>todo</code> is typed as a Pydantic model, FastAPI reads the JSON body and validates it. <code>**todo.dict()</code> unpacks the validated fields into keyword arguments — same as <code>TodoModel(title=…, description=…, …)</code>. <code>db.add</code> stages the row; <code>db.commit()</code> writes it (INSERT); <code>db.refresh</code> reloads the row from the DB so <code>new_todo.id</code> now holds the auto-generated ID we return to the client. (Pydantic v2 tip: <code>todo.model_dump()</code> is the modern name for <code>.dict()</code>.)</td></tr>
+      <tr><td class="lineno">30–41</td><td class="codecell">@router.put("/{todo_id}", response_model=TodoResponse)
+def update_todo(todo_id: int, todo: TodoCreateOrUpdate, db: Session = Depends(get_db)):
+    existing_todo = db.query(TodoModel).filter(TodoModel.id == todo_id).first()
+    if not existing_todo:
+        raise HTTPException(status_code=404, detail="Todo not found")
+    for key, value in todo.dict().items():
+        setattr(existing_todo, key, value)
+    db.commit()
+    db.refresh(existing_todo)
+    return existing_todo</td><td><strong>UPDATE.</strong> Fetch → 404 if missing → loop over the validated fields and copy each onto the existing object with <code>setattr</code> (dynamic version of <code>existing_todo.title = value</code>). SQLAlchemy tracks these changes ("dirty" state), and <code>commit()</code> issues the UPDATE statement. PUT semantics = full replacement: the client sends <em>all</em> fields every time.</td></tr>
+      <tr><td class="lineno">43–51</td><td class="codecell">@router.delete("/{todo_id}", response_model=TodoResponse)
+def delete_todo(todo_id: int, db: Session = Depends(get_db)):
+    todo = db.query(TodoModel).filter(TodoModel.id == todo_id).first()
+    if not todo:
+        raise HTTPException(status_code=404, detail="Todo not found")
+    db.delete(todo)
+    db.commit()
+    return todo</td><td><strong>DELETE.</strong> Same fetch-or-404 pattern, then <code>db.delete</code> + <code>commit()</code> runs the DELETE statement. Returning the deleted object is a friendly touch — the client sees exactly what was removed (handy for "undo" features).</td></tr>
+    </table>
+  </div>
+
+  <!-- main.py -->
+  <div class="filetab">
+    <div class="fname">app/main.py <span class="role">Entry point — assembles everything</span></div>
+    <table>
+      <tr><th style="width:34px">#</th><th style="width:46%">Code</th><th>What it does &amp; why</th></tr>
+      <tr><td class="lineno">1</td><td class="codecell">from fastapi import FastAPI</td><td>The main framework class.</td></tr>
+      <tr><td class="lineno">3–4</td><td class="codecell">from .database import engine, Base
+from .routes.todos import router as todos_router</td><td>Imports the DB engine + Base (for table creation) and the todos router (renamed locally for clarity). <strong>Important side effect:</strong> importing the router imports <code>models.py</code>, which registers <code>TodoModel</code> on <code>Base</code> — so the next line knows the table exists.</td></tr>
+      <tr><td class="lineno">6</td><td class="codecell">Base.metadata.create_all(bind=engine)</td><td>Runs once at startup: <code>CREATE TABLE IF NOT EXISTS todos (…)</code> for every registered model. Idempotent — safe on every restart. (In production teams you'd graduate to Alembic migrations, which can also <em>alter</em> existing tables.)</td></tr>
+      <tr><td class="lineno">8</td><td class="codecell">app = FastAPI(title="Todo API…", version="1.0.0")</td><td>Creates the ASGI application object — the thing Uvicorn serves. Title/version appear at the top of your <code>/docs</code> page.</td></tr>
+      <tr><td class="lineno">10</td><td class="codecell">app.include_router(todos_router)</td><td>Plugs the 5 CRUD endpoints into the app. Add future routers (users, auth, …) the same way — one line each.</td></tr>
+    </table>
+  </div>
+
+  <div class="tip"><strong>The one command that ties it together:</strong> <code>uvicorn app.main:app --reload</code> means "in package <code>app</code>, module <code>main</code>, find the variable <code>app</code>, and serve it; restart on file changes." On Render the same command runs without <code>--reload</code> and with <code>--host 0.0.0.0 --port $PORT</code>.</div>
+</section>
+
+<!-- ============ TAB 5: LIBRARIES ============ -->
+<section id="t-libs" class="tab">
+  <h2>Libraries used (from requirements.txt)</h2>
+  <h3>Core — your code imports these directly</h3>
+  <ul>
+    <li><strong>fastapi (0.141.1)</strong> — The web framework. Turns Python functions into HTTP endpoints via decorators, performs automatic validation from type hints, and auto-generates interactive docs at <code>/docs</code> (Swagger UI) and <code>/redoc</code>. Real-world example: it's the "waiter" — takes orders, checks them, delivers plates.</li>
+    <li><strong>SQLAlchemy (2.0.52)</strong> — The ORM (Object-Relational Mapper). Lets you work with Python classes/objects (<code>TodoModel</code>) instead of writing raw SQL strings; it generates the <code>SELECT/INSERT/UPDATE/DELETE</code> for you and manages connections and transactions. Also protects against SQL injection by parameterizing queries.</li>
+    <li><strong>pydantic (2.13.4)</strong> — Data validation using Python type hints. Powers your <code>schemas.py</code>: parses incoming JSON, enforces types, applies defaults, and rejects bad input with clear 422 errors. Example: sending <code>"completed": "banana"</code> is stopped at the door.</li>
+    <li><strong>uvicorn (0.52.4)</strong> — The ASGI web server that actually listens on a port and speaks HTTP. FastAPI is just an application; Uvicorn is the engine that runs it, both on your laptop and on Render.</li>
+  </ul>
+
+  <h3>Supporting — installed automatically as dependencies</h3>
+  <ul>
+    <li><strong>starlette (1.6.0)</strong> — The ASGI toolkit FastAPI is built on top of; supplies routing, requests/responses, and middleware machinery.</li>
+    <li><strong>pydantic_core (2.46.4)</strong> — Pydantic's high-speed validation engine, written in Rust. This is why Pydantic v2 validation is so fast.</li>
+    <li><strong>anyio (4.14.2)</strong> — Async concurrency layer Starlette uses; it also runs your plain <code>def</code> route functions in a threadpool so they don't block the event loop.</li>
+    <li><strong>h11 (0.16.0)</strong> — Pure-Python HTTP/1.1 protocol implementation used by Uvicorn to parse and emit HTTP messages.</li>
+    <li><strong>click (8.4.2)</strong> — Command-line interface toolkit; provides the <code>uvicorn …</code> command's argument parsing.</li>
+    <li><strong>greenlet (3.5.5)</strong> — Lightweight coroutine support SQLAlchemy uses internally, especially for its async features.</li>
+    <li><strong>typing_extensions / typing-inspection / annotated-types / annotated-doc / idna / colorama</strong> — Small utilities: newer typing features on older Pythons, type inspection for Pydantic, constraint types, domain-name handling, and colored terminal output on Windows.</li>
+  </ul>
+
+  <h3>⚠️ Present but unused — safe to remove</h3>
+  <ul>
+    <li><strong>Flask (3.1.3), Flask-SQLAlchemy, Jinja2, Werkzeug, itsdangerous, blinker, MarkupSafe</strong> — This is the entire <em>Flask</em> web-framework family, a competitor to FastAPI. Nothing in your code imports Flask, so these were likely left over from experimentation. Removing them makes Render builds faster and the dependency surface smaller. Portfolio-rationalization instinct applies to requirements files too: every unused dependency is cost and attack surface.</li>
+  </ul>
+
+  <div class="tip"><strong>Cleaned-up requirements.txt</strong> for this app really only needs four top-level lines — <code>fastapi</code>, <code>uvicorn</code>, <code>SQLAlchemy</code>, <code>pydantic</code> — pip resolves the rest automatically.</div>
+</section>
+
+<!-- ============ TAB 6: END-TO-END FLOW ============ -->
+<section id="t-flow" class="tab">
+  <h2>End-to-end request flow</h2>
+  <p>What happens in the ~10 milliseconds between a client pressing "send" and receiving JSON — shown for <span class="badge b-post">POST</span> <code>/todos</code> (creating a todo). Every endpoint follows this same spine; only the middle DB step changes.</p>
+
+  <div class="diagram">
+  <svg viewBox="0 0 1080 780" xmlns="http://www.w3.org/2000/svg" style="max-width:1080px;width:100%;font-family:Segoe UI,Arial,sans-serif">
+    <defs><marker id="fa" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#0f766e"/></marker>
+    <marker id="fr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#dc2626"/></marker></defs>
+
+    <rect x="390" y="10" width="300" height="52" rx="26" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+    <text x="540" y="32" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1e40af">1 · CLIENT sends HTTP request</text>
+    <text x="540" y="50" text-anchor="middle" font-size="11" fill="#1e3a8a">POST /todos  +  JSON body {"title": "File taxes", ...}</text>
+    <line x1="540" y1="62" x2="540" y2="88" stroke="#0f766e" stroke-width="2" marker-end="url(#fa)"/>
+
+    <rect x="390" y="90" width="300" height="52" rx="10" fill="#ccfbf1" stroke="#0d9488" stroke-width="1.5"/>
+    <text x="540" y="112" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0f766e">2 · UVICORN accepts the connection</text>
+    <text x="540" y="130" text-anchor="middle" font-size="11" fill="#134e4a">Parses raw HTTP → hands request to the FastAPI app</text>
+    <line x1="540" y1="142" x2="540" y2="168" stroke="#0f766e" stroke-width="2" marker-end="url(#fa)"/>
+
+    <rect x="390" y="170" width="300" height="52" rx="10" fill="#ccfbf1" stroke="#0d9488" stroke-width="1.5"/>
+    <text x="540" y="192" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0f766e">3 · ROUTING</text>
+    <text x="540" y="210" text-anchor="middle" font-size="11" fill="#134e4a">Matches POST + /todos → create_todo() in routes/todos.py</text>
+    <line x1="540" y1="222" x2="540" y2="248" stroke="#0f766e" stroke-width="2" marker-end="url(#fa)"/>
+
+    <rect x="390" y="250" width="300" height="64" rx="10" fill="#fef9c3" stroke="#f59e0b" stroke-width="1.5"/>
+    <text x="540" y="272" text-anchor="middle" font-size="12.5" font-weight="700" fill="#854d0e">4 · PYDANTIC VALIDATION</text>
+    <text x="540" y="290" text-anchor="middle" font-size="11" fill="#713f12">JSON body parsed into TodoCreateOrUpdate</text>
+    <text x="540" y="306" text-anchor="middle" font-size="11" fill="#713f12">types checked · defaults applied</text>
+
+    <!-- 422 branch -->
+    <line x1="690" y1="282" x2="810" y2="282" stroke="#dc2626" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#fr)"/>
+    <rect x="812" y="256" width="230" height="52" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="1.5"/>
+    <text x="927" y="278" text-anchor="middle" font-size="12" font-weight="700" fill="#7f1d1d">✗ invalid → 422 returned</text>
+    <text x="927" y="296" text-anchor="middle" font-size="10.5" fill="#7f1d1d">route function never runs</text>
+    <text x="750" y="272" text-anchor="middle" font-size="10.5" fill="#dc2626">fails</text>
+
+    <line x1="540" y1="314" x2="540" y2="340" stroke="#0f766e" stroke-width="2" marker-end="url(#fa)"/>
+    <text x="565" y="332" font-size="10.5" fill="#16a34a">✓ valid</text>
+
+    <rect x="390" y="342" width="300" height="52" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5"/>
+    <text x="540" y="364" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1e40af">5 · DEPENDENCY INJECTION — Depends(get_db)</text>
+    <text x="540" y="382" text-anchor="middle" font-size="11" fill="#1e3a8a">get_db() opens a fresh SQLAlchemy session for this request</text>
+    <line x1="540" y1="394" x2="540" y2="420" stroke="#0f766e" stroke-width="2" marker-end="url(#fa)"/>
+
+    <rect x="390" y="422" width="300" height="64" rx="10" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+    <text x="540" y="444" text-anchor="middle" font-size="12.5" font-weight="700" fill="#5b21b6">6 · ROUTE LOGIC — create_todo()</text>
+    <text x="540" y="462" text-anchor="middle" font-size="11" fill="#4c1d95">TodoModel(**todo.dict()) → db.add → db.commit</text>
+    <text x="540" y="478" text-anchor="middle" font-size="11" fill="#4c1d95">db.refresh loads the auto-generated id</text>
+    <line x1="540" y1="486" x2="540" y2="512" stroke="#0f766e" stroke-width="2" marker-end="url(#fa)"/>
+
+    <rect x="390" y="514" width="300" height="52" rx="10" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5"/>
+    <text x="540" y="536" text-anchor="middle" font-size="12.5" font-weight="700" fill="#9a3412">7 · SQLITE writes the row</text>
+    <text x="540" y="554" text-anchor="middle" font-size="11" fill="#7c2d12">INSERT INTO todos (title, ...) VALUES (?, ...) → id = 42</text>
+    <line x1="540" y1="566" x2="540" y2="592" stroke="#0f766e" stroke-width="2" marker-end="url(#fa)"/>
+
+    <rect x="390" y="594" width="300" height="64" rx="10" fill="#fef9c3" stroke="#f59e0b" stroke-width="1.5"/>
+    <text x="540" y="616" text-anchor="middle" font-size="12.5" font-weight="700" fill="#854d0e">8 · RESPONSE SERIALIZATION</text>
+    <text x="540" y="634" text-anchor="middle" font-size="11" fill="#713f12">response_model=TodoResponse converts the ORM row → JSON</text>
+    <text x="540" y="650" text-anchor="middle" font-size="11" fill="#713f12">get_db resumes → finally: db.close()</text>
+    <line x1="540" y1="658" x2="540" y2="684" stroke="#0f766e" stroke-width="2" marker-end="url(#fa)"/>
+
+    <rect x="390" y="686" width="300" height="56" rx="26" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+    <text x="540" y="708" text-anchor="middle" font-size="12.5" font-weight="700" fill="#14532a">9 · CLIENT receives 200 OK</text>
+    <text x="540" y="727" text-anchor="middle" font-size="11" fill="#166534">{"id": 42, "title": "File taxes", "completed": false, ...}</text>
+
+    <!-- side note -->
+    <rect x="30" y="342" width="300" height="144" rx="10" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="180" y="366" text-anchor="middle" font-size="12" font-weight="700" fill="#334155">Why dependency injection matters</text>
+    <text x="45" y="390" font-size="10.5" fill="#475569">• Route functions never manage connections —</text>
+    <text x="52" y="406" font-size="10.5" fill="#475569">they just receive a ready session</text>
+    <text x="45" y="426" font-size="10.5" fill="#475569">• One session per request = isolation</text>
+    <text x="45" y="446" font-size="10.5" fill="#475569">• finally: close() guarantees no leaked</text>
+    <text x="52" y="462" font-size="10.5" fill="#475569">connections, even on errors</text>
+    <text x="45" y="480" font-size="10.5" fill="#475569">• In tests, swap get_db for a fake DB easily</text>
+  </svg>
+  </div>
+
+  <div class="analogy"><strong>✈️ Analogy — airport security to boarding:</strong> Uvicorn is the terminal doors (step 2), routing is the departure board pointing you to a gate (3), Pydantic is security screening — wrong items and you're turned back with a clear reason, never reaching the gate (4 → 422), get_db is being issued a boarding pass (5), the route logic is boarding and flying (6–7), and serialization is landing announcements in the passengers' language, JSON (8).</div>
+</section>
+
+<!-- ============ TAB 7: SEQUENCE DIAGRAMS ============ -->
+<section id="t-seq" class="tab">
+  <h2>Sequence diagram — Use case 1: Create a todo (POST /todos)</h2>
+  <p>A sequence diagram reads top-to-bottom (time flows down). Vertical lines are participants; horizontal arrows are messages between them.</p>
+
+  <div class="diagram">
+  <svg viewBox="0 0 1080 620" xmlns="http://www.w3.org/2000/svg" style="max-width:1080px;width:100%;font-family:Segoe UI,Arial,sans-serif;font-size:11.5px">
+    <defs><marker id="sa" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#334155"/></marker>
+    <marker id="sb" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#16a34a"/></marker></defs>
+
+    <!-- participants -->
+    <g font-weight="700" font-size="12">
+      <rect x="20" y="16" width="130" height="38" rx="8" fill="#dbeafe" stroke="#2563eb"/><text x="85" y="40" text-anchor="middle" fill="#1e40af">Client</text>
+      <rect x="205" y="16" width="130" height="38" rx="8" fill="#ccfbf1" stroke="#0d9488"/><text x="270" y="40" text-anchor="middle" fill="#0f766e">Uvicorn</text>
+      <rect x="390" y="16" width="150" height="38" rx="8" fill="#ccfbf1" stroke="#0d9488"/><text x="465" y="40" text-anchor="middle" fill="#0f766e">FastAPI Router</text>
+      <rect x="595" y="16" width="140" height="38" rx="8" fill="#fef9c3" stroke="#f59e0b"/><text x="665" y="40" text-anchor="middle" fill="#854d0e">Pydantic</text>
+      <rect x="790" y="16" width="130" height="38" rx="8" fill="#ede9fe" stroke="#7c3aed"/><text x="855" y="40" text-anchor="middle" fill="#5b21b6">SQLAlchemy</text>
+      <rect x="955" y="16" width="110" height="38" rx="8" fill="#fff7ed" stroke="#ea580c"/><text x="1010" y="40" text-anchor="middle" fill="#9a3412">SQLite</text>
+    </g>
+    <!-- lifelines -->
+    <g stroke="#cbd5e1" stroke-dasharray="4 4">
+      <line x1="85" y1="54" x2="85" y2="590"/><line x1="270" y1="54" x2="270" y2="590"/><line x1="465" y1="54" x2="465" y2="590"/>
+      <line x1="665" y1="54" x2="665" y2="590"/><line x1="855" y1="54" x2="855" y2="590"/><line x1="1010" y1="54" x2="1010" y2="590"/>
+    </g>
+
+    <g stroke="#334155" stroke-width="1.6">
+      <line x1="85" y1="90" x2="268" y2="90" marker-end="url(#sa)"/>
+      <line x1="270" y1="130" x2="463" y2="130" marker-end="url(#sa)"/>
+      <line x1="465" y1="170" x2="663" y2="170" marker-end="url(#sa)"/>
+      <line x1="665" y1="210" x2="467" y2="210" marker-end="url(#sa)"/>
+      <line x1="465" y1="250" x2="853" y2="250" marker-end="url(#sa)"/>
+      <line x1="855" y1="290" x2="1008" y2="290" marker-end="url(#sa)"/>
+      <line x1="1010" y1="330" x2="857" y2="330" marker-end="url(#sa)"/>
+      <line x1="855" y1="370" x2="1008" y2="370" marker-end="url(#sa)"/>
+      <line x1="1010" y1="410" x2="857" y2="410" marker-end="url(#sa)"/>
+      <line x1="855" y1="450" x2="467" y2="450" marker-end="url(#sa)"/>
+    </g>
+    <g stroke="#16a34a" stroke-width="1.8">
+      <line x1="465" y1="500" x2="272" y2="500" marker-end="url(#sb)"/>
+      <line x1="270" y1="540" x2="87" y2="540" marker-end="url(#sb)"/>
+    </g>
+
+    <g fill="#334155">
+      <text x="176" y="82" text-anchor="middle">① POST /todos {JSON body}</text>
+      <text x="367" y="122" text-anchor="middle">② dispatch request</text>
+      <text x="565" y="162" text-anchor="middle">③ validate body</text>
+      <text x="565" y="202" text-anchor="middle">④ TodoCreateOrUpdate ✓</text>
+      <text x="660" y="242" text-anchor="middle">⑤ create_todo(): add(TodoModel) + commit()</text>
+      <text x="931" y="282" text-anchor="middle">⑥ INSERT INTO todos</text>
+      <text x="931" y="322" text-anchor="middle">⑦ ok, rowid=42</text>
+      <text x="931" y="362" text-anchor="middle">⑧ refresh → SELECT</text>
+      <text x="931" y="402" text-anchor="middle">⑨ full row (id=42)</text>
+      <text x="660" y="442" text-anchor="middle">⑩ TodoModel instance returned</text>
+    </g>
+    <g fill="#14532a" font-weight="700">
+      <text x="367" y="492" text-anchor="middle">⑪ serialize via TodoResponse</text>
+      <text x="176" y="532" text-anchor="middle">⑫ 200 OK {"id":42, ...}</text>
+    </g>
+    <text x="540" y="578" text-anchor="middle" fill="#64748b">After the response, get_db() resumes past its yield and closes the session (finally block)</text>
+  </svg>
+  </div>
+
+  <h2>Sequence diagram — Use case 2: Get one todo, including the 404 path (GET /todos/{id})</h2>
+  <div class="diagram">
+  <svg viewBox="0 0 1080 560" xmlns="http://www.w3.org/2000/svg" style="max-width:1080px;width:100%;font-family:Segoe UI,Arial,sans-serif;font-size:11.5px">
+    <defs><marker id="sc" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#334155"/></marker>
+    <marker id="sd" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#16a34a"/></marker>
+    <marker id="se" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#dc2626"/></marker></defs>
+
+    <g font-weight="700" font-size="12">
+      <rect x="30" y="16" width="140" height="38" rx="8" fill="#dbeafe" stroke="#2563eb"/><text x="100" y="40" text-anchor="middle" fill="#1e40af">Client</text>
+      <rect x="300" y="16" width="180" height="38" rx="8" fill="#ccfbf1" stroke="#0d9488"/><text x="390" y="40" text-anchor="middle" fill="#0f766e">FastAPI get_todo()</text>
+      <rect x="620" y="16" width="150" height="38" rx="8" fill="#ede9fe" stroke="#7c3aed"/><text x="695" y="40" text-anchor="middle" fill="#5b21b6">SQLAlchemy</text>
+      <rect x="890" y="16" width="120" height="38" rx="8" fill="#fff7ed" stroke="#ea580c"/><text x="950" y="40" text-anchor="middle" fill="#9a3412">SQLite</text>
+    </g>
+    <g stroke="#cbd5e1" stroke-dasharray="4 4">
+      <line x1="100" y1="54" x2="100" y2="530"/><line x1="390" y1="54" x2="390" y2="530"/><line x1="695" y1="54" x2="695" y2="530"/><line x1="950" y1="54" x2="950" y2="530"/>
+    </g>
+
+    <g stroke="#334155" stroke-width="1.6">
+      <line x1="100" y1="95" x2="388" y2="95" marker-end="url(#sc)"/>
+      <line x1="390" y1="140" x2="693" y2="140" marker-end="url(#sc)"/>
+      <line x1="695" y1="180" x2="948" y2="180" marker-end="url(#sc)"/>
+      <line x1="950" y1="220" x2="697" y2="220" marker-end="url(#sc)"/>
+      <line x1="695" y1="260" x2="392" y2="260" marker-end="url(#sc)"/>
+    </g>
+    <g fill="#334155">
+      <text x="244" y="87" text-anchor="middle">① GET /todos/7  (path param → int)</text>
+      <text x="542" y="132" text-anchor="middle">② query(TodoModel).filter(id==7).first()</text>
+      <text x="822" y="172" text-anchor="middle">③ SELECT … WHERE id=7 LIMIT 1</text>
+      <text x="822" y="212" text-anchor="middle">④ row  /  no row</text>
+      <text x="542" y="252" text-anchor="middle">⑤ TodoModel  /  None</text>
+    </g>
+
+    <!-- ALT frame -->
+    <rect x="60" y="290" width="960" height="215" fill="none" stroke="#94a3b8" stroke-width="1.4"/>
+    <path d="M60,290 h64 v22 l-10,10 h-54 z" fill="#e2e8f0" stroke="#94a3b8"/>
+    <text x="70" y="307" font-weight="700" fill="#334155">alt</text>
+    <line x1="60" y1="400" x2="1020" y2="400" stroke="#94a3b8" stroke-dasharray="6 5"/>
+
+    <text x="140" y="322" fill="#14532a" font-weight="700">[todo found]</text>
+    <g stroke="#16a34a" stroke-width="1.8"><line x1="390" y1="360" x2="102" y2="360" marker-end="url(#sd)"/></g>
+    <text x="244" y="350" text-anchor="middle" fill="#14532a">⑥ 200 OK — TodoResponse JSON</text>
+
+    <text x="140" y="426" fill="#7f1d1d" font-weight="700">[todo is None]</text>
+    <g stroke="#dc2626" stroke-width="1.8"><line x1="390" y1="470" x2="102" y2="470" marker-end="url(#se)"/></g>
+    <text x="270" y="448" text-anchor="middle" fill="#7f1d1d">raise HTTPException(404)</text>
+    <text x="244" y="462" text-anchor="middle" fill="#7f1d1d">⑥′ 404 {"detail": "Todo not found"}</text>
+  </svg>
+  </div>
+
+  <div class="tip"><strong>How to read the "alt" frame:</strong> it's UML notation for an if/else. Top compartment = the happy path (row found → 200); bottom = the alternative (no row → clean 404). PUT and DELETE follow this exact same shape — they just add an UPDATE or DELETE statement between steps ⑤ and ⑥.</div>
+</section>
+
+<!-- ============ TAB 8: PROJECT SETUP GUIDE ============ -->
+<section id="t-setup" class="tab">
+  <h2>From zero to running app — GitHub → VS Code → working API</h2>
+  <p>The full path you followed (and can repeat for any future project). Phase A creates the repository, Phase B sets up your machine, Phase C builds and runs, Phase D saves your work back to GitHub.</p>
+
+  <h3>Phase A — Create the repository on GitHub</h3>
+  <div class="step"><div class="num">1</div><div class="body"><h4>Sign in and create a new repo</h4><p>Go to <code>github.com</code> → click the <strong>+</strong> (top-right) → <strong>New repository</strong>. Name: <code>todo-application</code>. Visibility: <strong>Public</strong> (required for Render's free tier to see it easily, and lets recruiters view your work).</p></div></div>
+  <div class="step"><div class="num">2</div><div class="body"><h4>Initialize with sensible defaults</h4><p>Tick <strong>Add a README file</strong> and choose <strong>.gitignore template: Python</strong> (or add your own containing <code>.venv</code>). Click <strong>Create repository</strong>. You now have <code>https://github.com/EdwardSuresh/todo-application</code>.</p></div></div>
+
+  <h3>Phase B — Clone into Visual Studio Code</h3>
+  <div class="step"><div class="num">3</div><div class="body"><h4>Copy the clone URL</h4><p>On the repo page, click the green <strong>&lt;&gt; Code</strong> button → HTTPS tab → copy <code>https://github.com/EdwardSuresh/todo-application.git</code>.</p></div></div>
+  <div class="step"><div class="num">4</div><div class="body"><h4>Clone inside VS Code</h4><p>Open VS Code → <code>Ctrl+Shift+P</code> → type <strong>Git: Clone</strong> → paste the URL → choose a folder (e.g. <code>C:\Projects</code>) → click <strong>Open</strong> when prompted. (Terminal alternative: <code>git clone https://github.com/EdwardSuresh/todo-application.git</code>.)</p></div></div>
+  <div class="step"><div class="num">5</div><div class="body"><h4>Install the Python extension + create a virtual environment</h4><p>Install Microsoft's <strong>Python</strong> extension from the Extensions panel. Then open the integrated terminal (<code>Ctrl+`</code>) and run:</p>
+<pre><span class="c"># Windows</span>
+python -m venv .venv
+.venv\Scripts\activate
+<span class="c"># macOS / Linux</span>
+python3 -m venv .venv
+source .venv/bin/activate</pre>
+<p>A virtual environment is a private library shelf for this project — its packages don't clash with other projects. Your <code>.gitignore</code> entry <code>.venv</code> keeps this folder out of GitHub. Select the interpreter when VS Code asks (<code>Ctrl+Shift+P</code> → <strong>Python: Select Interpreter</strong> → the <code>.venv</code> one).</p></div></div>
+
+  <h3>Phase C — Build and run the application</h3>
+  <div class="step"><div class="num">6</div><div class="body"><h4>Create the package structure and files</h4><p>Create the folders/files exactly as in Tab 3 (<code>app/</code> with <code>__init__.py</code>, <code>routes/</code> with <code>__init__.py</code>, and the five Python files). The two <code>__init__.py</code> files can be completely empty — their presence is what makes the relative imports (<code>from .database import …</code>) work.</p></div></div>
+  <div class="step"><div class="num">7</div><div class="body"><h4>Install dependencies and freeze them</h4>
+<pre>pip install fastapi uvicorn sqlalchemy pydantic
+pip freeze &gt; requirements.txt</pre>
+<p><code>pip freeze</code> snapshots the exact versions into <code>requirements.txt</code> — that's how Render will later reproduce your environment byte-for-byte.</p></div></div>
+  <div class="step"><div class="num">8</div><div class="body"><h4>Run the dev server</h4>
+<pre>uvicorn app.main:app --reload</pre>
+<p><code>--reload</code> auto-restarts on every file save — perfect for development, never used in production. First run also creates <code>todos.db</code> automatically.</p></div></div>
+  <div class="step"><div class="num">9</div><div class="body"><h4>Test in the browser — no extra tools needed</h4><p>Open <code>http://127.0.0.1:8000/docs</code>. Swagger UI lists all 5 endpoints. Expand <span class="badge b-post">POST</span> <code>/todos</code> → <strong>Try it out</strong> → send:</p>
+<pre>{"title": "Prepare AWS AI Practitioner notes", "description": "Chapter 3", "priority": 2}</pre>
+<p>Then run <span class="badge b-get">GET</span> <code>/todos</code> and see your item come back with its new <code>id</code>. Try GET <code>/todos/999</code> to watch the 404 path fire.</p></div></div>
+
+  <h3>Phase D — Commit and push to GitHub</h3>
+  <div class="step"><div class="num">10</div><div class="body"><h4>Stage, commit, push</h4>
+<pre>git add .
+git commit -m "Todo CRUD API with FastAPI and SQLAlchemy"
+git push origin main</pre>
+<p>Or use VS Code's Source Control panel (third icon in the sidebar): type the message, click ✓ Commit, then <strong>Sync Changes</strong>. Your commit (like <code>b5c3179</code> in your Render dashboard) is now on GitHub — and that's exactly what Render deploys.</p></div></div>
+
+  <div class="tip"><strong>Daily development loop from here on:</strong> pull → edit → save (server auto-reloads) → test at <code>/docs</code> → commit → push → Render auto-deploys. One loop, every feature.</div>
+</section>
+
+<!-- ============ TAB 9: RENDER DEPLOY ============ -->
+<section id="t-deploy" class="tab">
+  <h2>Deploying to the public internet with Render</h2>
+  <p><strong>Why Render?</strong> It's a Platform-as-a-Service: you hand it a GitHub repo, it builds, runs, and exposes it over HTTPS with a public URL — no servers, firewalls, or certificates to manage. The free tier is ideal for portfolio/demo apps like this one.</p>
+
+  <h3>Deployment steps (what you did)</h3>
+  <div class="step"><div class="num">1</div><div class="body"><h4>Create a Render account and connect GitHub</h4><p>Sign up at <code>render.com</code> (easiest: "Sign in with GitHub"). Authorize Render to read your repositories — this is what enables auto-deploy on every push.</p></div></div>
+  <div class="step"><div class="num">2</div><div class="body"><h4>New → Web Service</h4><p>Dashboard → <strong>New +</strong> → <strong>Web Service</strong> → pick <code>EdwardSuresh/todo-application</code>, branch <code>main</code>.</p></div></div>
+  <div class="step"><div class="num">3</div><div class="body"><h4>Configure the service</h4>
+  <table>
+    <tr><th>Setting</th><th>Value</th><th>Why</th></tr>
+    <tr><td>Name</td><td><code>todo-application</code></td><td>Becomes part of your URL</td></tr>
+    <tr><td>Region</td><td>Oregon (US West) or closest</td><td>Latency for your users</td></tr>
+    <tr><td>Runtime</td><td>Python 3</td><td>Auto-detected from requirements.txt</td></tr>
+    <tr><td>Build command</td><td><code>pip install -r requirements.txt</code></td><td>Installs your exact pinned libraries</td></tr>
+    <tr><td>Start command</td><td><code>uvicorn app.main:app --host 0.0.0.0 --port $PORT</code></td><td><code>0.0.0.0</code> = accept outside traffic; <code>$PORT</code> = Render tells you which port to use</td></tr>
+    <tr><td>Instance type</td><td>Free</td><td>$0 — with the spin-down trade-off</td></tr>
+  </table></div></div>
+  <div class="step"><div class="num">4</div><div class="body"><h4>Create Web Service → watch the build</h4><p>Render clones the repo, runs the build command, then the start command. The <strong>Events/Logs</strong> tabs show progress; your first deploy took <strong>1m 37s</strong> and ended with the green <strong>Live</strong> badge on commit <code>b5c3179</code>.</p></div></div>
+  <div class="step"><div class="num">5</div><div class="body"><h4>Verify publicly</h4><p>Open <code>https://todo-application-tazt.onrender.com/docs</code> from any device — your API is now on the public internet with HTTPS automatically provisioned. Every future <code>git push</code> to <code>main</code> triggers an automatic redeploy ("First Deploy" → continuous deployment).</p></div></div>
+
+  <h3>Deployment pipeline at a glance</h3>
+  <div class="diagram">
+  <svg viewBox="0 0 1080 150" xmlns="http://www.w3.org/2000/svg" style="max-width:1080px;width:100%;font-family:Segoe UI,Arial,sans-serif;font-size:11.5px">
+    <defs><marker id="da" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#0f766e"/></marker></defs>
+    <g font-weight="700" font-size="12">
+      <rect x="15" y="40" width="150" height="64" rx="10" fill="#dbeafe" stroke="#2563eb"/><text x="90" y="68" text-anchor="middle" fill="#1e40af">VS Code</text><text x="90" y="88" text-anchor="middle" font-weight="400" fill="#1e3a8a">edit + commit</text>
+      <rect x="235" y="40" width="150" height="64" rx="10" fill="#f1f5f9" stroke="#334155"/><text x="310" y="68" text-anchor="middle" fill="#0f172a">GitHub main</text><text x="310" y="88" text-anchor="middle" font-weight="400" fill="#475569">b5c3179</text>
+      <rect x="455" y="40" width="150" height="64" rx="10" fill="#ccfbf1" stroke="#0d9488"/><text x="530" y="68" text-anchor="middle" fill="#0f766e">Render build</text><text x="530" y="88" text-anchor="middle" font-weight="400" fill="#134e4a">pip install -r</text>
+      <rect x="675" y="40" width="150" height="64" rx="10" fill="#ccfbf1" stroke="#0d9488"/><text x="750" y="68" text-anchor="middle" fill="#0f766e">Render run</text><text x="750" y="88" text-anchor="middle" font-weight="400" fill="#134e4a">uvicorn … $PORT</text>
+      <rect x="895" y="40" width="170" height="64" rx="10" fill="#dcfce7" stroke="#16a34a"/><text x="980" y="68" text-anchor="middle" fill="#14532a">🌍 Live URL</text><text x="980" y="88" text-anchor="middle" font-weight="400" font-size="10" fill="#166534">…tazt.onrender.com</text>
+    </g>
+    <g stroke="#0f766e" stroke-width="2">
+      <line x1="165" y1="72" x2="233" y2="72" marker-end="url(#da)"/><line x1="385" y1="72" x2="453" y2="72" marker-end="url(#da)"/>
+      <line x1="605" y1="72" x2="673" y2="72" marker-end="url(#da)"/><line x1="825" y1="72" x2="893" y2="72" marker-end="url(#da)"/>
+    </g>
+    <g fill="#64748b" font-size="10.5">
+      <text x="199" y="60" text-anchor="middle">git push</text><text x="419" y="60" text-anchor="middle">webhook</text>
+      <text x="639" y="60" text-anchor="middle">success</text><text x="859" y="60" text-anchor="middle">HTTPS</text>
+    </g>
+  </svg>
+  </div>
+
+  <h3>Two free-tier realities to know</h3>
+  <div class="note"><strong>1 · Cold starts.</strong> The banner in your dashboard says it plainly: free instances spin down after ~15 minutes of no traffic, and the next request waits 50+ seconds while the container restarts. Fine for demos; upgrade to a paid instance for always-on behavior.</div>
+  <div class="warn"><strong>2 · Ephemeral disk = your SQLite data disappears.</strong> The free filesystem is rebuilt on every deploy and restart, so <code>todos.db</code> resets to empty. Any todos created through the live site vanish on the next push or spin-down. Fixes, in order of seriousness: (a) accept it for a demo; (b) attach a paid Render <em>Persistent Disk</em>; (c) the production answer — swap the connection string in <code>database.py</code> to a managed <strong>PostgreSQL</strong> database (Render offers one) and change nothing else in your code. That one-line swap is the payoff of the layered architecture in Tab 2.</div>
+
+  <h3>Troubleshooting quick table</h3>
+  <table>
+    <tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr>
+    <tr><td>Build fails on pip install</td><td>Typo/version conflict in requirements.txt</td><td>Check Logs tab; pin fewer packages (see Tab 5 cleanup)</td></tr>
+    <tr><td>"Application exited early"</td><td>Wrong start command / module path</td><td>Must match your package layout: <code>app.main:app</code></td></tr>
+    <tr><td>502 / no response</td><td>Bound to 127.0.0.1 or wrong port</td><td>Use <code>--host 0.0.0.0 --port $PORT</code></td></tr>
+    <tr><td>First request very slow</td><td>Free-tier cold start</td><td>Expected; retry or upgrade</td></tr>
+    <tr><td>Data vanished</td><td>Ephemeral disk reset todos.db</td><td>Move to Postgres / persistent disk</td></tr>
+  </table>
+</section>
+
+<footer>Todo API teaching guide · FastAPI + SQLAlchemy + SQLite · deployed on Render</footer>
+</main>
+<script>
+document.getElementById('tabs').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  document.getElementById(b.dataset.tab).classList.add('active');
+  window.scrollTo({top:0});
+});
+</script>
+</body>
+</html>
